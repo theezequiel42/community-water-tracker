@@ -34,7 +34,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Water Consumption Bot</h1>
+        <h1>Consulta de Consumo de Água</h1>
         <p>Digite o nome de uma pessoa para verificar o consumo de água:</p>
 
         <div className="form">
