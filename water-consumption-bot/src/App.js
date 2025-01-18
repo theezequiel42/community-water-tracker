@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import "./App.css";
 
@@ -10,6 +10,7 @@ function App() {
   const [ano, setAno] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
+  const [historico, setHistorico] = useState([]);
 
   // Buscar sugestões de nomes
   const buscarSugestoes = async (query) => {
@@ -42,8 +43,20 @@ function App() {
 
       const response = await axios.get("http://127.0.0.1:8000/descricao", { params });
       setResultado(response.data);
+
+      // Adicionar ao histórico
+      setHistorico((prevHistorico) => [
+        { nome, mes, ano, resultado: response.data },
+        ...prevHistorico,
+      ]);
+
+      // Limpar campos após a consulta
+      setNome("");
+      setMes("");
+      setAno("");
+      setSugestoes([]);
     } catch (error) {
-      setErro("Erro ao consultar os dados. Verifique sua conexão ou tente novamente.");
+      setErro("Não encontramos informações para o nome solicitado. Por favor, tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -118,6 +131,20 @@ function App() {
               ) : (
                 <li>{resultado.mensagem}</li>
               )}
+            </ul>
+          </div>
+        )}
+
+        {historico.length > 0 && (
+          <div className="historico">
+            <h2>Histórico de Consultas:</h2>
+            <ul>
+              {historico.map((item, index) => (
+                <li key={index}>
+                  Nome: {item.nome}, Mês: {item.mes || "Não informado"}, Ano: {item.ano || "Não informado"},
+                  Resultado: {item.resultado.mensagem || "Verifique os dados."}
+                </li>
+              ))}
             </ul>
           </div>
         )}
