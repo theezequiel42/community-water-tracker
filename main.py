@@ -1,6 +1,7 @@
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 
 app = FastAPI()
 
@@ -25,17 +26,9 @@ def carregar_dados():
         print("Colunas disponíveis no arquivo:", dados.columns.tolist())
 
         # Verificar se as colunas obrigatórias estão presentes
-        required_columns = ['Nome', 'Medição Dezembro 2023 ()', 'Valor Dezembro 2023 (R$)']
-        missing_columns = [col for col in required_columns if col not in dados.columns]
+        if 'Nome' not in dados.columns:
+            raise KeyError("A coluna 'Nome' é obrigatória e não foi encontrada no arquivo.")
 
-        if missing_columns:
-            raise KeyError(f"As colunas obrigatórias estão ausentes: {missing_columns}")
-
-        # Criar uma nova coluna com descrições formatadas
-        dados['descricao'] = dados.apply(
-            lambda row: f"{row['Nome']} teve consumo de {row['Medição Dezembro 2023 ()']}m³ em dezembro, pagando R${row['Valor Dezembro 2023 (R$)']}",
-            axis=1
-        )
         return dados
 
     except FileNotFoundError:
@@ -58,14 +51,56 @@ def read_root():
     return {"message": "API funcionando corretamente!"}
 
 @app.get("/descricao")
-def get_descricao(nome: str):
+def get_descricao(
+    nome: str,
+    mes: str = Query(default=None, regex=r"^(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)$", description="Mês do consumo"),
+    ano: int = Query(default=None, description="Ano do consumo")
+):
     if dados is None:
         raise HTTPException(status_code=500, detail="Os dados não foram carregados corretamente.")
 
+    # Normalizar o nome para busca
     resultado = dados[dados['Nome'].str.contains(nome, case=False, na=False)]
 
     if resultado.empty:
         return {"mensagem": f"Nenhum consumo encontrado para o nome: {nome}"}
+
+    # Determinar o mês e ano atuais se não forem fornecidos
+    agora = datetime.now()
+    mes_atual = agora.strftime("%B").lower()  # Nome do mês atual em minúsculas
+    ano_atual = agora.year
+
+    # Ajustar para o mês anterior se o mês atual for janeiro
+    if mes is None and ano is None:
+        if mes_atual == "january":
+            mes = "dezembro"
+            ano = ano_atual - 1
+        else:
+            mes = mes_atual
+            ano = ano_atual
+
+    # Caso o mês seja fornecido, mas o ano não
+    if ano is None:
+        ano = ano_atual
+
+    # Construir os nomes das colunas dinamicamente
+    if f"Consumo {mes.capitalize()}" in dados.columns and f"Valor {mes.capitalize()}" in dados.columns:
+        # Se a coluna não tem ano, usar o ano atual como referência
+        coluna_consumo = f"Consumo {mes.capitalize()}"
+        coluna_valor = f"Valor {mes.capitalize()}"
+    else:
+        # Caso contrário, procurar colunas com o ano explícito
+        coluna_consumo = f"Consumo {mes.capitalize()} ({ano})"
+        coluna_valor = f"Valor {mes.capitalize()} ({ano})"
+
+    if coluna_consumo not in dados.columns or coluna_valor not in dados.columns:
+        return {"mensagem": f"Os dados para {mes.capitalize()} de {ano} não estão disponíveis."}
+
+    # Adicionar as descrições baseadas nos dados filtrados
+    resultado['descricao'] = resultado.apply(
+        lambda row: f"{row['Nome']} teve consumo de {row[coluna_consumo]}m³ em {mes.capitalize()}, pagando R${row[coluna_valor]}",
+        axis=1
+    )
 
     return resultado['descricao'].tolist()
 

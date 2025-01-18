@@ -13,7 +13,11 @@ const App = () => {
       const res = await axios.get(`${API_URL}/descricao`, {
         params: { nome: input },
       });
-      setResponse(res.data.join("\n"));
+      if (Array.isArray(res.data)) {
+        setResponse(res.data.join("\n"));
+      } else {
+        setResponse(res.data.mensagem || "Nenhuma resposta encontrada.");
+      }
     } catch (error) {
       console.error("Erro ao conectar com o servidor:", error);
       if (error.response && error.response.data) {
