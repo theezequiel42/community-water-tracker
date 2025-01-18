@@ -1,55 +1,93 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState } from 'react';
+import axios from 'axios';
+import './App.css';
 
-const App = () => {
-  const [input, setInput] = useState("");
-  const [response, setResponse] = useState("");
+function App() {
+  const [nome, setNome] = useState('');
+  const [resultado, setResultado] = useState(null);
+  const [mes, setMes] = useState('');
+  const [ano, setAno] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState(null);
 
-  const API_URL = "http://127.0.0.1:8000"; // Certifique-se de que este é o endereço correto do backend
+  const consultar = async () => {
+    setLoading(true);
+    setErro(null);
+    setResultado(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     try {
-      const res = await axios.get(`${API_URL}/descricao`, {
-        params: { nome: input },
-      });
-      if (Array.isArray(res.data)) {
-        setResponse(res.data.join("\n"));
-      } else {
-        setResponse(res.data.mensagem || "Nenhuma resposta encontrada.");
-      }
+      const params = {
+        nome,
+        ...(mes && { mes }),
+        ...(ano && { ano }),
+      };
+
+      const response = await axios.get('http://127.0.0.1:8000/descricao', { params });
+      setResultado(response.data);
     } catch (error) {
-      console.error("Erro ao conectar com o servidor:", error);
-      if (error.response && error.response.data) {
-        setResponse(error.response.data.detail || "Erro de conexão com o servidor.");
-      } else {
-        setResponse("Erro de conexão com o servidor.");
-      }
+      setErro('Erro ao consultar os dados. Verifique sua conexão ou tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Water Consumption Bot</h1>
-      <p>Digite o nome de uma pessoa para verificar o consumo:</p>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Digite o nome"
-          style={{ padding: "10px", width: "300px", marginRight: "10px" }}
-        />
-        <button type="submit" style={{ padding: "10px 20px" }}>
-          Enviar
-        </button>
-      </form>
-      <div style={{ marginTop: "20px", whiteSpace: "pre-line" }}>
-        <h3>Resposta:</h3>
-        <p>{response}</p>
-      </div>
+    <div className="App">
+      <header className="App-header">
+        <h1>Water Consumption Bot</h1>
+        <p>Digite o nome de uma pessoa para verificar o consumo de água:</p>
+
+        <div className="form">
+          <input
+            type="text"
+            placeholder="Nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+          <select value={mes} onChange={(e) => setMes(e.target.value)}>
+            <option value="">Escolha o mês</option>
+            <option value="janeiro">Janeiro</option>
+            <option value="fevereiro">Fevereiro</option>
+            <option value="março">Março</option>
+            <option value="abril">Abril</option>
+            <option value="maio">Maio</option>
+            <option value="junho">Junho</option>
+            <option value="julho">Julho</option>
+            <option value="agosto">Agosto</option>
+            <option value="setembro">Setembro</option>
+            <option value="outubro">Outubro</option>
+            <option value="novembro">Novembro</option>
+            <option value="dezembro">Dezembro</option>
+          </select>
+          <input
+            type="number"
+            placeholder="Ano"
+            value={ano}
+            onChange={(e) => setAno(e.target.value)}
+          />
+          <button onClick={consultar} disabled={loading || !nome}>
+            Consultar
+          </button>
+        </div>
+
+        {loading && <p>Consultando...</p>}
+        {erro && <p className="error">{erro}</p>}
+
+        {resultado && (
+          <div className="resultado">
+            <h2>Resultado:</h2>
+            <ul>
+              {Array.isArray(resultado) ? (
+                resultado.map((res, index) => <li key={index}>{res}</li>)
+              ) : (
+                <li>{resultado.mensagem}</li>
+              )}
+            </ul>
+          </div>
+        )}
+      </header>
     </div>
   );
-};
+}
 
 export default App;
