@@ -56,3 +56,24 @@ button:disabled {
   max-width: 600px;
   margin-top: 20px;
 }
+
+.sugestoes {
+  list-style-type: none;
+  padding: 0;
+  margin: 10px 0;
+  background: white;
+  color: black;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.sugestoes li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.sugestoes li:hover {
+  background: #f0f0f0;
+}

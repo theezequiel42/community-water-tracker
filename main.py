@@ -100,3 +100,23 @@ def debug():
 
     finally:
         conn.close()
+
+@app.get("/nomes")
+def get_nomes(query: str = ""):
+    """
+    Retorna uma lista de nomes que correspondem ao parâmetro de consulta.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Consulta para buscar nomes que começam com o termo digitado
+        cursor.execute("SELECT DISTINCT Nome FROM consumo_agua WHERE Nome LIKE ?", (f"{query}%",))
+        resultados = cursor.fetchall()
+
+        nomes = [row[0] for row in resultados]
+        return {"nomes": nomes}
+    except Exception as e:
+        return {"erro": str(e)}
+    finally:
+        conn.close()

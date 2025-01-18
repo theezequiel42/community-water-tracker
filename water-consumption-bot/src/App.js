@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./App.css";
 
 function App() {
-  const [nome, setNome] = useState('');
+  const [nome, setNome] = useState("");
+  const [sugestoes, setSugestoes] = useState([]);
   const [resultado, setResultado] = useState(null);
-  const [mes, setMes] = useState('');
-  const [ano, setAno] = useState('');
+  const [mes, setMes] = useState("");
+  const [ano, setAno] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
 
+  // Buscar sugestões de nomes
+  const buscarSugestoes = async (query) => {
+    try {
+      if (query.length > 1) {
+        const response = await axios.get("http://127.0.0.1:8000/nomes", {
+          params: { query },
+        });
+        setSugestoes(response.data.nomes);
+      } else {
+        setSugestoes([]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar sugestões:", error);
+    }
+  };
+
+  // Função para consultar o consumo
   const consultar = async () => {
     setLoading(true);
     setErro(null);
@@ -22,10 +40,10 @@ function App() {
         ...(ano && { ano }),
       };
 
-      const response = await axios.get('http://127.0.0.1:8000/descricao', { params });
+      const response = await axios.get("http://127.0.0.1:8000/descricao", { params });
       setResultado(response.data);
     } catch (error) {
-      setErro('Erro ao consultar os dados. Verifique sua conexão ou tente novamente.');
+      setErro("Erro ao consultar os dados. Verifique sua conexão ou tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -42,8 +60,26 @@ function App() {
             type="text"
             placeholder="Nome"
             value={nome}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => {
+              setNome(e.target.value);
+              buscarSugestoes(e.target.value);
+            }}
           />
+          {sugestoes.length > 0 && (
+            <ul className="sugestoes">
+              {sugestoes.map((sugestao, index) => (
+                <li
+                  key={index}
+                  onClick={() => {
+                    setNome(sugestao);
+                    setSugestoes([]);
+                  }}
+                >
+                  {sugestao}
+                </li>
+              ))}
+            </ul>
+          )}
           <select value={mes} onChange={(e) => setMes(e.target.value)}>
             <option value="">Escolha o mês</option>
             <option value="janeiro">Janeiro</option>
